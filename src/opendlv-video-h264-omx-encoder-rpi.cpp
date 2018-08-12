@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// This implementation is based on: https://github.com/raspberrypi/userland/blob/e5b2684c507442f6a0c7508c34a3f61706dc00e6/host_applications/linux/apps/hello_pi/hello_encode/encode.c
+
 #include "cluon-complete.hpp"
 #include "opendlv-standard-message-set.hpp"
 
