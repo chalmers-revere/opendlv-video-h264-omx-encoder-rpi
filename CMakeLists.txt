@@ -20,7 +20,7 @@ project(opendlv-video-h264-omx-encoder-rpi)
 ################################################################################
 # Defining the relevant versions of OpenDLV Standard Message Set and libcluon.
 set(OPENDLV_STANDARD_MESSAGE_SET opendlv-standard-message-set-v0.9.6.odvd)
-set(CLUON_COMPLETE cluon-complete-v0.0.107.hpp)
+set(CLUON_COMPLETE cluon-complete-v0.0.108.hpp)
 
 ################################################################################
 # Set the search path for .cmake files.
