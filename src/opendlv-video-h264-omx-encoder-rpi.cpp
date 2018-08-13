@@ -31,8 +31,10 @@ extern "C" {
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -91,9 +93,33 @@ int32_t main(int32_t argc, char **argv) {
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
         const uint32_t ID{(commandlineArguments["id"].size() != 0) ? static_cast<uint32_t>(std::stoi(commandlineArguments["id"])) : 0};
 
+        // Allow rpi-camera to get started and cleanup existing shared memory segments.
+        {
+            using namespace std::literals::chrono_literals; // NOLINT
+            std::this_thread::sleep_for(10s);
+        }
+
         std::unique_ptr<cluon::SharedMemory> sharedMemory(new cluon::SharedMemory{NAME});
         if (sharedMemory && sharedMemory->valid()) {
             std::clog << "[opendlv-video-h264-omx-encoder-rpi]: Attached to '" << sharedMemory->name() << "' (" << sharedMemory->size() << " bytes)." << std::endl;
+
+            // Here, the camera is live. Now, we need to stop after 30s and
+            // restart once due to internal dependencies.
+            cluon::data::TimeStamp startTime = cluon::time::now();
+            bool cancelAfter5s = false;
+            {
+                std::fstream omxTokenFile("/tmp/omx.token", std::ios::in);
+                if (!omxTokenFile.good()) {
+                    cancelAfter5s = true;
+                    // Set "cookie".
+                    std::fstream omxTokenFile2("/tmp/omx.token", std::ios::out);
+                    omxTokenFile2 << "Token" << std::endl;
+                    omxTokenFile2.close();
+                }
+                else {
+                    unlink("/tmp/omx.token");
+                }
+            }
 
             bcm_host_init();
 
@@ -261,6 +287,15 @@ static_cast<ILCLIENT_CREATE_FLAGS_T>(
                 sharedMemory->wait();
 
                 sampleTimeStamp = cluon::time::now();
+
+                if (cancelAfter5s) {
+                    auto delta = cluon::time::deltaInMicroseconds(sampleTimeStamp, startTime);
+                    delta /= 1000; // milliseonds;
+                    delta /= 1000; // seconds;
+                    if (delta > 5) {
+                        break;
+                    }
+                }
 
                 if (VERBOSE) {
                     before = sampleTimeStamp;
